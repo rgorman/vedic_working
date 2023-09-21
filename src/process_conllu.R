@@ -69,7 +69,66 @@ for (j in seq_len(ncol(z))) {
   }
 }
 
+###
+working.df <- add_column(working.df, global_token_id = 1:nrow(working.df), .before = TRUE)
 
-saveRDS(working.df,file = "formatted_online_parse.RDS")
+x <- working.df$sentence_id %>%
+  unique() # vector with id number of each sentence
+
+parent_holder.v <- NULL # vector to store result of loop
+#dd_holder.v <- NULL # vector to store result of loop
+
+for (n in seq_along(x)) { # loop to create vector of parent term_ids
+  
+  a <- working.df %>%
+    filter(sentence_id == x[n]) # df with rows sentence by sentence
+  
+  b <- as.numeric(a$head_token_id) # vector with head_token_id for each row in sentence 
+  
+  b[which(b == 0)] <- NA # eliminate any head_token_id with value 0
+  
+  
+  
+  parent_holder.v <- c(parent_holder.v,  a$global_token_id[b] %>%
+                         as.numeric() ) # add parent term_token_id values for current sentence to vector
+  
+}
+
+working.df <- add_column(working.df, global_parent_id = parent_holder.v, .before = TRUE)
+####
+
+###
+swap.df <- add_column(swap.df, global_token_id = 1:nrow(swap.df), .before = TRUE)
+
+x <- swap.df$sentence_id %>%
+  unique() # vector with id number of each sentence
+
+parent_holder.v <- NULL # vector to store result of loop
+#dd_holder.v <- NULL # vector to store result of loop
+
+for (n in seq_along(x)) { # loop to create vector of parent term_ids
+  
+  a <- swap.df %>%
+    filter(sentence_id == x[n]) # df with rows sentence by sentence
+  
+  b <- as.numeric(a$head_token_id) # vector with head_token_id for each row in sentence 
+  
+  b[which(b == 0)] <- NA # eliminate any head_token_id with value 0
+  
+  
+  
+  parent_holder.v <- c(parent_holder.v,  a$global_token_id[b] %>%
+                         as.numeric() ) # add parent term_token_id values for current sentence to vector
+  
+}
+
+swap.df <- add_column(swap.df, global_parent_id = parent_holder.v, .before = TRUE)
 
 
+
+z <- working.df$sentence_id %>% unique()
+z[1000:1473]
+
+
+saveRDS(swap.df, file = "online_parse_eval.RDS")
+saveRDS(working.df, file = "gold_parse_eval.RDS")
