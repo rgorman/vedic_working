@@ -15,6 +15,7 @@ online.df <- add_column(online.df, full_ref = gold.df$sentence_id, .before = TRU
 online.df <- add_column(online.df, book_ref = x, .before = TRUE)
 online.df <- add_column(online.df, work_ref = x, .before = TRUE)
 
+saveRDS(online.df, file = "online_ref_by_work.RDS")
 
 books.v <- x %>% unique()
 tokenCount.l <- vector(mode = "list", length(books.v))
