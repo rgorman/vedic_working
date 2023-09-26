@@ -1,11 +1,28 @@
 require(tidyverse)
 require(udpipe)
 
-files.v <- dir(pattern = ".conllu")
+files.v <- dir(pattern = "_parsed")
+
+### find all feature categories
 
 
-drops.v <-  which(str_detect(files.v, "_parsed") == TRUE)
-files.v <- files.v[-drops.v]
+holder.l <- vector(mode = "list", length(files.v))
+
+for (i in seq_along(files.v)) {
+  working.df <- udpipe_read_conllu(files.v[i])
+  z <- working.df$feats %>%
+    str_split(., "\\|", simplify = TRUE) # make a matrix of each name-value pair in the "feats" col of the input (e.g., "Case=Nom")
+  
+  holder.l[[i]] <-  z %>% gsub("=.*", "", .) %>%
+    as.vector() %>%
+    unique()
+  
+}
+
+morphs.v <-  unlist(holder.l) %>% unique
+morphs.v <- morphs.v[- which(morphs.v == "")] # remove empty categories
+morphs.v[which(is.na(morphs.v))] <- "Not_App" # rename NA: this is not an acceptable name for a col
+
 
 BookAndHymn.v <- files.v %>% str_extract("ṚV.*") %>%
   gsub("-.*", "", .) %>%
@@ -27,6 +44,8 @@ m <- ncol(z) # for loop: number of cols in z
 
 morphs.v <- NULL # vector to store results of loop
 
+
+saveRDS(morphs.v, "morphs.RDS")
 
 for (j in seq_len(m)) { # loop through cols of z
   
@@ -188,8 +207,7 @@ for (i in seq_along(files.v)) { # loop to make separate col for each category of
 
 files.v2 <- files.v
 
-
-# x <- readRDS(files.v[i])
+### fix numbering of flles 
 
 for (n in 1:9) {
   OldBook.v <- paste0("_", n, "_")
@@ -221,7 +239,55 @@ for (i in seq_along(files.v)) {
   
 }
 
+############
 
+######### ### add data fof parent
 
+### make single file for global indexing
 
-n <- 1
+files.v <- dir(pattern = ".RDS")
+
+holder.l <- vector(mode = "list", length(files.v))
+for (i in seq_along(files.v)) {
+  x <- readRDS(files.v[i])
+  holder.l[[i]] <- x
+  print(paste0("finished ", i))
+  
+}
+
+working.df <- do.call(bind_rows, holder.l)
+
+nrow(working.df)
+working.df$sentence_id %>%
+  unique() %>%
+  length()
+
+## add global token id
+a <- 1:nrow(working.df)
+working.df <- add_column(working.df, GlobalTokenId = a, .before = TRUE)
+
+sent.v <- working.df$sentence_id %>%
+  unique()
+
+parent_holder.v <- NULL
+
+for (n in seq_along(sent.v)) { # loop to create vector of parent term_ids
+  
+  a <- working.df %>%
+    filter(sentence_id == sent.v[n]) # df with rows sentence by sentence
+  
+  b <- as.numeric(a$head_token_id) # vector with head_token_id for each row in sentence 
+  
+  b[which(b == 0)] <- NA # eliminate any head_token_id with value 0
+  
+ 
+  parent_holder.v <- c(parent_holder.v,  a$GlobalTokenId[b] %>%
+                         as.numeric() ) # add parent term_token_id values for current sentence to vector
+  
+}
+
+working.df$head_token_id
+working.df[180:200, c(1:3, 8, 14) ]
+
+files.v <- dir(pattern = "_parsed")
+z <- udpipe_read_conllu(files.v[1]) 
