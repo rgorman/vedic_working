@@ -65,36 +65,19 @@ morphs.v[which(is.na(morphs.v))] <- "Not_App" # rename NA: this is not an accept
 self_names.v <- paste0("self_", morphs.v) # vector of col names for target word
 parent_names_v <- paste0("parent_", morphs.v) # vector of col names for parent of target
 
+files.v2 <- files.v
 
-######### add metadata, convert to df, record colnames for morphs
-holder.l <- vector(mode = "list", length(files.v))
+######### add metadata, convert to df
+
 for (i in seq_along(files.v)) {
   working.df <- udpipe_read_conllu(files.v[i])
   working.df <- add_column(working.df, Book_and_Hymn = BookAndHymn.v[i], .before = TRUE)
   working.df <- add_column(working.df, Book_Id = Book.v[i], .before = TRUE)
-  
-  z <- working.df$feats %>%
-    str_split(., "\\|", simplify = TRUE) # make a matrix of each name-value pair in the "feats" col of the input (e.g., "Case=Nom")
-  
-  m <- ncol(z) # for loop: number of cols in z
-  
-  morphs.v <- NULL # vector to store results of loop
-  
-  
-  for (j in seq_len(m)) { # loop through cols of z
-    
-    a <- z[, j] %>% 
-      str_split(., "=") %>% # split name from value for each pair
-      sapply(., magrittr::extract, 1) # extract and keep only names, not values
-    
-    morphs.v <- c(morphs.v, a) # put results in vector
-    
-  }
-  
-  morphs.v <-  unique(morphs.v) # remove duplicates
+ 
   FileName.v <- paste0( BookAndHymn.v[i], ".RDS")
   
-  FileAndPath.v <-  file.path(".", "data", FileName.v)
+  FileAndPath.v <-  file.path(".", "output", FileName.v)
+  
   
   holder.l[[i]] <- morphs.v
   
@@ -102,15 +85,10 @@ for (i in seq_along(files.v)) {
   print(paste("completed file", i))
   
 }
+###
 
 
-NamesForMorph.v <- unlist(holder.l) %>% unique()
-
-
-NamesForMorph.v <- NamesForMorph.v[- which(NamesForMorph.v == "")] # remove empty categories
-NamesForMorph.v[which(is.na(NamesForMorph.v))] <- "Not_App" # rename NA: this is not an acceptable name for a col
-
-self_names.v <- paste0("self_", NamesForMorph.v)
+self_names.v <- paste0("self_", morphs.v)
 
 
 #### loop to populate morpho-syntactic cols
@@ -118,7 +96,6 @@ self_names.v <- paste0("self_", NamesForMorph.v)
 
 files.v <- dir(pattern = ".RDS")
 
-working.df$misc
 
 for (i in seq_along(files.v)) { # loop to make separate col for each category of morpho-syntactic data
   
@@ -197,10 +174,10 @@ for (i in seq_along(files.v)) { # loop to make separate col for each category of
   
   
   
-  fp <- file.path("parsed_expanded", files.v[i]) # create file path for saving
+  fp <- file.path(".", "parsed_expanded", files.v[i]) # create file path for saving
   
-  saveRDS(working.df, files.v[i])
-  print(paste0("completed file ", files.v[i]))
+  saveRDS(working.df, fp)
+  print(paste0("completed file ", i))
   
   
 }
@@ -287,7 +264,42 @@ for (n in seq_along(sent.v)) { # loop to create vector of parent term_ids
 }
 
 working.df$head_token_id
+
+
+
+saveRDS(working.df, "combined.df.RDS")
+###############
+
+
+
+
+
+
+
+
+
+
 working.df[180:200, c(1:3, 8, 14) ]
 
 files.v <- dir(pattern = "_parsed")
 z <- udpipe_read_conllu(files.v[1]) 
+
+for (n in 1:9) {
+  OldBook.v <- paste0("_", n, "_")
+  NewBook.v <- paste0("_", "0", n, "_")
+  
+  OldHymn.v <- paste0("_", n, ".RDS")
+  NewHymn.v <- paste0("_", "0", n, ".RDS")
+  
+  FileName2.v <- gsub( OldBook.v, NewBook.v, FileName.v )
+  FileName3.v <- gsub(OldHymn.v, NewHymn.v, FileName2.v)
+  
+  files.v2[which(str_detect(files.v2, OldBook.v))] <- files.v2[which(str_detect(files.v2, OldBook.v))] %>%
+    gsub(OldBook.v, NewBook.v, .)
+  
+  files.v2[which(str_detect(files.v2, OldHymn.v))] <- files.v2[which(str_detect(files.v2, OldHymn.v))] %>%
+    gsub(OldHymn.v, NewHymn.v, .)
+  
+  
+  
+}
